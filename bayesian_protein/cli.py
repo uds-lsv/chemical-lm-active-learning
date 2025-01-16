@@ -1,5 +1,6 @@
 import argparse
 import itertools
+import logging
 import pathlib
 import random
 import warnings
@@ -233,7 +234,17 @@ def parse_args() -> List[CommandLineArgs]:
         default=1,
     )
 
+    parser.add_argument(
+        "--verbose",
+        help="Output debugging logs",
+        action="store_const", dest="loglevel", const=logging.DEBUG,
+        default=logging.INFO,
+    )
+
     args = parser.parse_args()
+
+    logging.basicConfig(level=args.loglevel)
+    delattr(args, "loglevel")
 
     cli_args = set()
     for combination in itertools.product(args.embedding, args.surrogate, args.sampler):
