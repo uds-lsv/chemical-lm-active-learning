@@ -115,18 +115,20 @@ class ClusteredLigandPools:
 
         if by == "random":
             idx = self.rng.choice(unlabeled.index, size=size, replace=False)
-
+            score = [None for _ in idx]
         elif by == "closest":
             assert unlabeled[
                 "distance_to_centroid"
             ].is_monotonic_increasing, "Pool is not sorted"
             idx = unlabeled.index[:size]
+            score =  unlabeled["distance_to_centroid"][:size]
         elif by == "greedy":
             embeddings = self.embeddings[unlabeled.index.values]
             prediction_mean, _ = model.forward(embeddings, unlabeled["smiles"].tolist())
             # We want the k items that have the smallest predicted value (=best affinity)
             arr_idx = np.argpartition(prediction_mean, size)[:size]
             idx = unlabeled.iloc[arr_idx].index
+            score = prediction_mean[arr_idx]
         elif by == "expected-improvement":
             cluster = self.get_cluster(cluster_id)
             labeled = cluster[cluster["queried"]]
@@ -142,6 +144,7 @@ class ClusteredLigandPools:
             scores[scores < 0] = 0
             arr_idx = np.argpartition(scores, -size)[-size:]
             idx = unlabeled.iloc[arr_idx].index
+            score = scores[arr_idx]
         elif by == "explore":
             # Pick the k items with the largest variance.
             # If the output follows a gaussian distribution (e.g. regression) the variance
@@ -154,13 +157,14 @@ class ClusteredLigandPools:
             _, prediction_std = model.forward(embeddings, unlabeled["smiles"].tolist())
             arr_idx = np.argpartition(prediction_std, -size)[-size:]
             idx = unlabeled.iloc[arr_idx].index
+            score = prediction_std[arr_idx]
         else:
             raise ValueError(
                 f"Invalid sampler {by}. Valid choices are: {', '.join(VALID_SAMPLERS)}"
             )
 
         self.set_queried(idx)
-        return idx, self._data.loc[idx]
+        return idx, self._data.loc[idx], score
 
     def set_queried(self, index: int):
         self._update(index, "queried", True)

@@ -115,7 +115,7 @@ class Optimizer:
         for cluster_id in self.pool.cluster_ids:
             model = self.models[cluster_id]
             # Get closest molecule
-            idx, result = self.pool.sample("closest", cluster_id, model, size=1)
+            idx, result, score = self.pool.sample("closest", cluster_id, model, size=1)
             result = result.squeeze()  # We don't need a whole dataframe
             affinity, path_to_result = simulator.simulate(result["smiles"])
             self.pool.set_value(idx, affinity)
@@ -132,6 +132,7 @@ class Optimizer:
                 affinity=affinity,
                 prediction_mean=prediction_mean.item(),
                 prediction_std=prediction_std.item(),
+                acquisition_score=score.item(),
                 iteration=-1,
                 cluster=cluster_id,
                 output_file_path=path_to_result,
@@ -148,7 +149,7 @@ class Optimizer:
         model = self.models[cluster_id]
 
         t0 = time.time()
-        idx, result = self.pool.sample(
+        idx, result, acq_scores = self.pool.sample(
             sampler, cluster_id, model, self.args.sample_size
         )
         self.logger.debug(
@@ -182,13 +183,14 @@ class Optimizer:
                     affinity=affinity,
                     prediction_mean=float(mean),
                     prediction_std=float(std),
+                    acquisition_score=float(score),
                     iteration=iteration,
                     cluster=cluster_id,
                     output_file_path=str(path) if path is not None else None,
                     is_validation_result=False,
                 )
-                for (molecule, affinity, path, mean, std) in zip(
-                    result["smiles"], affinities, paths, prediction_mean, prediction_std
+                for (molecule, affinity, path, mean, std, score) in zip(
+                    result["smiles"], affinities, paths, prediction_mean, prediction_std, acq_scores
                 )
             ]
         )
@@ -235,6 +237,7 @@ class Optimizer:
                         sample["target"],
                         float(val_mean[idx].item()),
                         float(val_std[idx].item()),
+                        acquisition_score=None,
                         iteration=iteration,
                         cluster=cluster_id,
                         output_file_path=None,

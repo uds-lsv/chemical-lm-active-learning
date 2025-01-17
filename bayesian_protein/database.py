@@ -70,6 +70,7 @@ class QueryResult:
     affinity: float  # Observed affinity
     prediction_mean: float  # Predicted affinity
     prediction_std: float  # Predicted affinity variance
+    acquisition_score: float
     iteration: int  # At which iteration this molecule was picked
     cluster: int  # From which cluster this molecule was picked
     output_file_path: Optional[
@@ -87,6 +88,7 @@ class QueryResult:
             affinity REAL not null,
             prediction_mean REAL not null,
             prediction_std REAL not null,
+            acquisition_score REAL,  -- May be null for e.g. random acquisition or validation results
             iteration INTEGER not null,
             cluster INTEGER not null,
             output_file_path TEXT,
@@ -106,12 +108,13 @@ class QueryResult:
             affinity,
             prediction_mean,
             prediction_std,
+            acquisition_score,
             iteration,
             cluster,
             output_file_path,
             is_validation_result
         ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         );
         """
 
@@ -196,6 +199,7 @@ class Database:
         affinity: float,
         prediction_mean: float,
         prediction_std: float,
+        acquisition_score: float,
         iteration: int,
         cluster: int,
         output_file_path: Optional[Path],
@@ -219,6 +223,7 @@ class Database:
             affinity=affinity,
             prediction_mean=prediction_mean,
             prediction_std=prediction_std,
+            acquisition_score=acquisition_score,
             iteration=iteration,
             cluster=cluster,
             output_file_path=str(output_file_path)
