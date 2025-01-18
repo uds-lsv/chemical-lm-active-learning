@@ -5,7 +5,7 @@ import pathlib
 import random
 import warnings
 from dataclasses import dataclass
-from typing import Optional, List, Callable, Tuple
+from typing import Optional, List, Callable, Tuple, Literal
 
 import pandas as pd
 
@@ -45,6 +45,7 @@ class CommandLineArgs:
     sampler: Sampler
     surrogate: Surrogate
     protein: str
+    init_sampler: Literal["closest", "random"]
     cluster: Optional[int] = 1
     out: Optional[pathlib.Path] = None
     simulate: Optional[Simulator] = None
@@ -235,10 +236,19 @@ def parse_args() -> List[CommandLineArgs]:
     )
 
     parser.add_argument(
+        "--init-sampler",
+        type=str,
+        choices=["random", "closest"],
+        help="How to choose the first sample. 'random' simpyl chooses one random sample. 'closest' chooses the cluster "
+             "centroid in the embedding space.",
+        default="closest"
+    )
+
+    parser.add_argument(
         "--verbose",
         help="Output debugging logs",
         action="store_const", dest="loglevel", const=logging.DEBUG,
-        default=logging.INFO,
+        default=logging.WARNING,
     )
 
     args = parser.parse_args()

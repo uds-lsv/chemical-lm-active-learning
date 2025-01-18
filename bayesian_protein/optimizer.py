@@ -115,7 +115,7 @@ class Optimizer:
         for cluster_id in self.pool.cluster_ids:
             model = self.models[cluster_id]
             # Get closest molecule
-            idx, result, score = self.pool.sample("closest", cluster_id, model, size=1)
+            idx, result, score = self.pool.sample(self.args.init_sampler, cluster_id, model, size=1)
             result = result.squeeze()  # We don't need a whole dataframe
             affinity, path_to_result = simulator.simulate(result["smiles"])
             self.pool.set_value(idx, affinity)
@@ -132,7 +132,7 @@ class Optimizer:
                 affinity=affinity,
                 prediction_mean=prediction_mean.item(),
                 prediction_std=prediction_std.item(),
-                acquisition_score=score.item(),
+                acquisition_score=score[0],
                 iteration=-1,
                 cluster=cluster_id,
                 output_file_path=path_to_result,
