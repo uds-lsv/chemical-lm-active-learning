@@ -96,6 +96,7 @@ class Optimizer:
             output_file=self.args.out,
             data_path=self.args.data,
             sampler=self.args.sampler,
+            init_sampler=self.args.init_sampler,
             surrogate=self.args.surrogate,
             protein=self.args.protein,
             seed=self.args.seed,

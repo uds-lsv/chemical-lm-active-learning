@@ -1,7 +1,7 @@
 import dataclasses
 import sqlite3
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from bayesian_protein.types import EmbeddingModel, Sampler, Simulator, Surrogate
 
@@ -12,6 +12,7 @@ class Experiment:
     embedding_model: EmbeddingModel
     data_path: str
     sampler: Sampler
+    init_sampler: Literal["random", "closest"]
     surrogate: Surrogate
     protein: str
     seed: int
@@ -30,6 +31,7 @@ class Experiment:
             embedding_model TEXT not null,
             data_path TEXT not null,
             sampler TEXT not null,
+            init_sampler TEXT not null,
             surrogate TEXT not null,
             protein TEXT not null,
             seed INTEGER not null,
@@ -49,6 +51,7 @@ class Experiment:
             embedding_model,
             data_path,
             sampler,
+            init_sampler,
             surrogate,
             protein,
             seed,
@@ -58,7 +61,7 @@ class Experiment:
             bandit_confidence,
             job_id
         ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         );
         """
 
@@ -240,6 +243,7 @@ class Database:
         embedding_model: EmbeddingModel,
         data_path: Path,
         sampler: Sampler,
+        init_sampler: Literal["closest", "random"],
         surrogate: Surrogate,
         protein: str,
         seed: int,
@@ -255,6 +259,7 @@ class Database:
             embedding_model,
             str(data_path),
             sampler,
+            init_sampler,
             surrogate,
             protein,
             seed,
