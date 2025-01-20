@@ -46,6 +46,7 @@ class CommandLineArgs:
     surrogate: Surrogate
     protein: str
     init_sampler: Literal["closest", "random"]
+    init_sample_size: int = 1
     cluster: Optional[int] = 1
     out: Optional[pathlib.Path] = None
     simulate: Optional[Simulator] = None
@@ -242,6 +243,13 @@ def parse_args() -> List[CommandLineArgs]:
         help="How to choose the first sample. 'random' simpyl chooses one random sample. 'closest' chooses the cluster "
              "centroid in the embedding space.",
         default="closest"
+    )
+
+    parser.add_argument(
+        "--init-sample-size",
+        type=int,
+        default=1,
+        help="How many molecule to label before the first iteration."
     )
 
     parser.add_argument(

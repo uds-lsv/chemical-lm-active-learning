@@ -16,6 +16,8 @@ class Experiment:
     surrogate: Surrogate
     protein: str
     seed: int
+    batch_size: int
+    init_batch_size: int
     output_file: Optional[str] = None
     n_clusters: Optional[int] = 1
     simulator: Optional[Simulator] = None
@@ -28,6 +30,8 @@ class Experiment:
         CREATE TABLE IF NOT EXISTS experiment (
             id INTEGER not null,
             n_iter INTEGER not null,
+            batch_size INTEGER not null,
+            init_batch_size INTEGER not null,
             embedding_model TEXT not null,
             data_path TEXT not null,
             sampler TEXT not null,
@@ -48,6 +52,8 @@ class Experiment:
         return """
         INSERT INTO experiment (
             n_iter,
+            batch_size,
+            init_batch_size,
             embedding_model,
             data_path,
             sampler,
@@ -61,7 +67,7 @@ class Experiment:
             bandit_confidence,
             job_id
         ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         );
         """
 
@@ -240,6 +246,8 @@ class Database:
     def insert_experiment(
         self,
         n_iter: int,
+        batch_size,
+        init_batch_size,
         embedding_model: EmbeddingModel,
         data_path: Path,
         sampler: Sampler,
@@ -256,6 +264,8 @@ class Database:
         # Data Validation
         experiment = Experiment(
             n_iter,
+            batch_size,
+            init_batch_size,
             embedding_model,
             str(data_path),
             sampler,

@@ -79,7 +79,7 @@ class Optimizer:
                 cluster_id = self.bandit.choose()
                 self.logger.debug(f"({i:0>4}) Chose cluster {cluster_id} based on UCB.")
                 self.query(
-                    cluster_id, simulator, iteration=i, sampler=self.args.sampler
+                    cluster_id, simulator, iteration=i, sampler=self.args.sampler, size=self.args.sample_size
                 )
 
                 if self.pool.cluster_is_empty(cluster_id):
@@ -92,6 +92,8 @@ class Optimizer:
     def store_experiment(self):
         self.experiment_id = self.db.insert_experiment(
             n_iter=self.args.n_iter,
+            batch_size=self.args.sample_size,
+            init_batch_size=self.args.init_sample_size,
             embedding_model=self.args.embedding,
             output_file=self.args.out,
             data_path=self.args.data,
@@ -114,30 +116,12 @@ class Optimizer:
         :return:
         """
         for cluster_id in self.pool.cluster_ids:
-            model = self.models[cluster_id]
-            # Get closest molecule
-            idx, result, score = self.pool.sample(self.args.init_sampler, cluster_id, model, size=1)
-            result = result.squeeze()  # We don't need a whole dataframe
-            affinity, path_to_result = simulator.simulate(result["smiles"])
-            self.pool.set_value(idx, affinity)
-            embedding = np.array(result["embedding"]).reshape(1, -1)
-            model.update(embedding, [affinity], [result["smiles"]])
-            self.bandit.update(cluster_id, affinity)
-
-            prediction_mean, prediction_std = self.models[cluster_id].forward(
-                embedding.reshape(1, -1), [result["smiles"]]
-            )
-            self.db.insert_result(
-                experiment_id=self.experiment_id,
-                molecule=result["smiles"],
-                affinity=affinity,
-                prediction_mean=prediction_mean.item(),
-                prediction_std=prediction_std.item(),
-                acquisition_score=score[0],
+            self.query(
+                cluster_id,
+                simulator,
                 iteration=-1,
-                cluster=cluster_id,
-                output_file_path=path_to_result,
-                is_validation_result=False,
+                sampler=self.args.init_sampler,
+                size=self.args.init_sample_size
             )
 
     def query(
@@ -146,12 +130,13 @@ class Optimizer:
         simulator: SimulatorBase,
         iteration: int,
         sampler: Sampler,
+        size: int
     ):
         model = self.models[cluster_id]
 
         t0 = time.time()
         idx, result, acq_scores = self.pool.sample(
-            sampler, cluster_id, model, self.args.sample_size
+            sampler, cluster_id, model, size
         )
         self.logger.debug(
             f"({iteration:0>4}) Chosen sample {result['smiles']}: {time.time() - t0:.2f}s"
@@ -164,9 +149,14 @@ class Optimizer:
         self.pool.set_value(idx, affinities)
         embedding = np.stack(result["embedding"].values)
         # TODO: If using expected improvement this calculates the forward pass twice
-        prediction_mean, prediction_std = self.models[cluster_id].forward(
-            embedding, result["smiles"].tolist()
-        )
+        if iteration > -1:  # Initial iteration
+            prediction_mean, prediction_std = self.models[cluster_id].forward(
+                embedding, result["smiles"].tolist()
+            )
+        else:
+            prediction_mean = [np.inf] * len(result["smiles"])
+            prediction_std = [0] * len(result["smiles"])
+
         self.logger.debug(
             f"({iteration:0>4}) Predicted {result['smiles']}: {prediction_mean}"
         )
@@ -184,7 +174,7 @@ class Optimizer:
                     affinity=affinity,
                     prediction_mean=float(mean),
                     prediction_std=float(std),
-                    acquisition_score=float(score),
+                    acquisition_score=float(score) if score is not None else None,  # None when random sampling
                     iteration=iteration,
                     cluster=cluster_id,
                     output_file_path=str(path) if path is not None else None,
