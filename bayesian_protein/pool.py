@@ -122,6 +122,18 @@ class ClusteredLigandPools:
             ].is_monotonic_increasing, "Pool is not sorted"
             idx = unlabeled.index[:size]
             score =  unlabeled["distance_to_centroid"][:size]
+
+        elif by == "xth-closest":
+            warnings.warn(f"xth-closest will acquire only the {size}th closest input to the medoid.")
+            assert unlabeled[
+                "distance_to_centroid"
+            ].is_monotonic_increasing, "Pool is not sorted"
+            # Make sure we return DataFrames, using just size returns a Series
+            # and then errors when iterating over results["smiles"] because that
+            # then returns just the string
+            idx = unlabeled.index[size:size+1]
+            score = unlabeled["distance_to_centroid"][size:size+1]
+
         elif by == "greedy":
             embeddings = self.embeddings[unlabeled.index.values]
             prediction_mean, _ = model.forward(embeddings, unlabeled["smiles"].tolist())
