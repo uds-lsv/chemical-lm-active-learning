@@ -56,7 +56,7 @@ class DatasetSimulator(SimulatorBase):
             raise ValueError("The dataset contains NaN entries.")
 
         if (self.data["target"] >= 0).any():
-            raise ValueError("The 'target' column contains non-negative entries.")
+            warnings.warn("The 'target' column contains non-negative entries.")
 
     def __exit__(self, __exc_type, __exc_value, __traceback):
         super().__exit__(__exc_type, __exc_value, __traceback)
